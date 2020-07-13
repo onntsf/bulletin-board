@@ -1,15 +1,12 @@
-import Head from 'next/head'
+import Head from "next/head";
+import WritingForm from "../components/WritingForm";
 
-const IndexPage = () => (
+const IndexPage = ({}) => (
   <>
     <Head>
-      <title>Next.js • TodoMVC</title>
+      <title>けいじばん</title>
     </Head>
-  hello world
-    <footer className="info">
-      <p>Double-click to edit a todo</p>
-      <p>Created by Misako Seki</p>
-    </footer>
+    <WritingForm />
   </>
 );
 
