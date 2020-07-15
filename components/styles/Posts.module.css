@@ -1,0 +1,9 @@
+.post {
+  border-width: 1px;
+  display: inline-block;
+  border-style: none solid solid none;
+  border-color: #ddd;
+  background-color: #efefef;
+  margin-bottom: 8px;
+  padding: 8px;
+}
