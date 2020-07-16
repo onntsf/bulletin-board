@@ -33,7 +33,7 @@ class WritingForm extends React.Component {
       val_email: this.state.val_email,
       val_body: this.state.val_body
     };
-    const res = await fetch("http://localhost:8888/", {
+    const res = await fetch("http://localhost:3000/confirm", {
       method: "POST",
       mode: "cors",
       cache: "no-cache",
@@ -42,11 +42,10 @@ class WritingForm extends React.Component {
       },
       redirect: "follow",
       body: JSON.stringify(data)
-    }).catch(error => console.log(error));
-    const result = await res.json();
-    if (result.message == "ok") {
-      Router.reload();
-    }
+    }).then((res) => {
+      if (res.ok) Router.push('/confirm')
+    })
+      .catch(error => console.log(error));
   }
 
   render() {
