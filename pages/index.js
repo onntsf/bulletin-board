@@ -23,8 +23,6 @@ export async function getServerSideProps(context) {
     redirect: 'follow',
   });
   const posts = await res.json();
-  console.log(posts);
-
   return {
     props: { posts },
   };
