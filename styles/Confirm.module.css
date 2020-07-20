@@ -1,0 +1,8 @@
+.delete {
+  font-size: "+1";
+}
+
+.error {
+  font-size: "+1";
+  color: "#FF0000";
+}

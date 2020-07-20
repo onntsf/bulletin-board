@@ -7,3 +7,15 @@
   margin-bottom: 8px;
   padding: 8px;
 }
+
+.refer_to {
+text-decoration: underline 
+}
+
+.referred_from {
+font-size: 0.7em;
+margin-left: 5px;
+text-decoration: none
+}
+
+

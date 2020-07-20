@@ -6,14 +6,14 @@ const app = express();
 
 const connection = mysql.createConnection({
   host: "localhost",
-  user: "misa",
-  password: "chappy",
-  database: "db_bulletin_board"
+
+
+
 });
 
 app.use(express.json());
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.header("Access-Control-Allow-Origin", "*");
   res.header(
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept"
@@ -21,15 +21,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get("/", (req, res) => {
-  connection.query("SELECT * FROM t_board", (err, rows, fields) => {
-    if (err) throw err;
-    res.send(rows[0]);
-  });
-  next();
-});
-
-app.get("/all", (req, res) => {
+app.get("/posts", (req, res) => {
+  // 投稿データ取得
   connection.query(
     "select" +
       " t_post.id as id," +
@@ -39,7 +32,8 @@ app.get("/all", (req, res) => {
       " user_name" +
       " from t_post" +
       " left join m_user" +
-      " on t_post.user_id = m_user.id",
+      " on t_post.user_id = m_user.id" +
+      " where t_post.deleted = 0",
     (err, rows, fields) => {
       if (err) throw err;
       res.send(rows);
@@ -47,7 +41,15 @@ app.get("/all", (req, res) => {
   );
 });
 
-app.post("/", (req, res) => {
+app.get("/reference", (req, res) => {
+  // 参照データ取得
+  connection.query("select * from t_reference where deleted = 0", (err, rows, fields) => {
+    if (err) throw err;
+    res.send(rows);
+  });
+});
+
+const validate = req => {
   const date_now = new Date();
   const now = formatter.dateFormat(date_now);
 
@@ -57,19 +59,113 @@ app.post("/", (req, res) => {
 
   // 入力チェック
   const regex_email = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*\.\w+$/;
-  if (email && !regex_email.test(email)) {
-    req.body.message = "メールアドレスを正しく入力して下さい";
-    res.send(req.body);
-    return;
-  }
+  let message = "ok";
   if (!body_text) {
-    req.body.message = "本文を入力して下さい";
-    res.send(req.body);
-    return;
+    message = "本文がありません！";
+  } else if (email && !regex_email.test(email)) {
+    message = "メールアドレスを正しく入力して下さい";
   }
-  if (!name) name = "名無しさん＠１周年";
+  return [name, email, body_text, now, message];
+};
 
+app.post("/temp", (req, res) => {
+  const [name, email, body_text, now, message] = validate(req);
+  // 問い合わせテーブルへの挿入データ準備
+  const data_inquiry = {
+    host: req.hostname,
+    name: name,
+    email: email,
+    body_text: body_text,
+    message: message,
+    created_date: now,
+    updated_date: now
+  };
+  // 問い合わせテーブルへ挿入
+  connection.query(
+    "insert into t_inquiry set ?",
+    data_inquiry,
+    (err, rows, fields) => {
+      if (err) throw err;
+      res.json({ id: rows.insertId, message: data_inquiry.message });
+    }
+  );
+});
+
+app.post("/temp/update", (req, res) => {
+  const [name, email, body_text, now, message] = validate(req);
+
+  // アップデートテーブルへの挿入データ準備
+  const data_inquiry = {
+    post_id: req.body.post_id,
+    user_id: req.body.user_id,
+    host: req.hostname,
+    name: name,
+    email: email,
+    body_text: body_text,
+    message: message,
+    created_date: now,
+    updated_date: now
+  };
+  // アップデートテーブルへ挿入
+  connection.query(
+    "insert into t_update set ?",
+    data_inquiry,
+    (err, rows, fields) => {
+      if (err) throw err;
+      res.json({ id: rows.insertId, message: data_inquiry.message });
+    }
+  );
+});
+
+app.get("/confirm", (req, res) => {
+  if (typeof req.query.postid !== "undefined") {
+    connection.query(
+      "select * from t_update" + " where id = ?",
+      req.query.id,
+      (err, rows, fields) => {
+        if (err) throw err;
+        res.send(rows);
+      }
+    );
+  } else {
+    connection.query(
+      "select * from t_inquiry" + " where id = ?",
+      req.query.id,
+      (err, rows, fields) => {
+        if (err) throw err;
+        res.send(rows);
+      }
+    );
+  }
+});
+
+app.get("/detail", (req, res) => {
+  connection.query(
+    "select" +
+      " t_post.id as id," +
+      " t_post.updated_date as updated_date," +
+      " body_text," +
+      " m_user.id as user_id," +
+      " user_name" +
+      " from t_post" +
+      " left join m_user" +
+      " on t_post.user_id = m_user.id" +
+      " where t_post.id = ?",
+    req.query.id,
+    (err, rows, fields) => {
+      if (err) throw err;
+      res.send(rows);
+    }
+  );
+});
+
+app.post("/register", (req, res) => {
   // ユーザマスタへの挿入データ準備
+  const name = req.body.name ? req.body.name : "匿名";
+  const email = req.body.name;
+  const body_text = req.body.body_text;
+  const now = formatter.dateSlice(req.body.created_date);
+
   const data_user = {
     user_name: name,
     user_email: email,
@@ -97,8 +193,7 @@ app.post("/", (req, res) => {
         data_post,
         (err, rows, fields) => {
           if (err) throw err;
-
-          const regex_anchor = /(>>\d+)/gi;
+          const regex_anchor = />>(\d+)/gi;
           const anchor_match = [...body_text.matchAll(regex_anchor)];
           if (
             !(
@@ -106,20 +201,157 @@ app.post("/", (req, res) => {
               anchor_match.length > 0 &&
               anchor_match[0].length > 0
             )
-          )
+          ) {
             return;
-          const anchor = anchor_match[0][1];
+          }
           // 参照テーブルへの挿入データ準備
-          const data_refer = {
-            referred_from: rows.insertId,
-            refer_to: anchor,
-            created_date: now,
-            updated_date: now
-          };
-          // 参照テーブルへ挿入
+          anchor_match.forEach(anchor => {
+            const data_reference = {
+              referred_from: rows.insertId,
+              refer_to: anchor[1],
+              created_date: now,
+              updated_date: now
+            };
+            // 参照テーブルへ挿入
+            connection.query(
+              "insert into t_reference set ?",
+              data_reference,
+              (err, rows, fields) => {
+                if (err) throw err;
+              }
+            );
+          });
+        }
+      );
+    }
+  );
+
+  res.send({ message: "ok" });
+});
+
+app.post("/update", (req, res) => {
+  const name = req.body.name ? req.body.name : "匿名";
+  const email = req.body.name;
+  const body_text = req.body.body_text;
+  const now = formatter.dateSlice(req.body.created_date);
+  const user_id = req.body.user_id;
+  const post_id = req.body.post_id;
+
+  // ユーザマスタの変更データ準備
+  const data_user = {
+    user_name: name,
+    user_email: email,
+    created_date: now,
+    updated_date: now
+  };
+
+  // ユーザマスタアップデート
+  connection.query(
+    "update m_user set ? where id = ?",
+    [data_user, user_id],
+    (err, rows, fields) => {
+      if (err) throw err;
+
+      // 投稿テーブルのアップデートデータ準備
+      const data_post = {
+        thread_id: 1,
+        user_id: user_id,
+        body_text: body_text,
+        created_date: now,
+        updated_date: now
+      };
+
+      // 投稿テーブルのアップデート
+      connection.query(
+        "update t_post set ? where id = ?",
+        [data_post, post_id],
+        (err, rows, fields) => {
+          if (err) throw err;
+          // 対象参照テーブル行を削除
           connection.query(
-            "insert into t_refer set ?",
-            data_refer,
+            "delete from t_reference where referred_from = ?",
+            post_id,
+            (err, rows, fields) => {
+              if (err) throw err;
+
+              const regex_anchor = />>(\d+)/gi;
+              const anchor_match = [...body_text.matchAll(regex_anchor)];
+              if (
+                !(
+                  anchor_match &&
+                  anchor_match.length > 0 &&
+                  anchor_match[0].length > 0
+                )
+              ) {
+                return;
+              }
+              // 参照テーブルの挿入データ準備
+              anchor_match.forEach(anchor => {
+                const data_reference = {
+                  referred_from: post_id,
+                  refer_to: anchor[1],
+                  created_date: now,
+                  updated_date: now
+                };
+                // 参照テーブルへ挿入
+                connection.query(
+                  "insert into t_reference set ?",
+                  data_reference,
+                  (err, rows, fields) => {
+                    if (err) throw err;
+                  }
+                );
+              });
+            }
+          );
+        }
+      );
+    }
+  );
+
+  res.send({ message: "ok" });
+});
+
+app.post("/delete", (req, res) => {
+  const date_now = new Date();
+  const now = formatter.dateFormat(date_now);
+  const user_id = req.body.user_id;
+  const post_id = req.body.id;
+
+  // ユーザマスタの変更データ準備
+  const data_user = {
+    updated_date: now,
+    deleted: 1
+  };
+
+  // ユーザマスタアップデート
+  connection.query(
+    "update m_user set ? where id = ?",
+    [data_user, user_id],
+    (err, rows, fields) => {
+      if (err) throw err;
+
+      // 投稿テーブルのアップデートデータ準備
+      const data_post = {
+        updated_date: now,
+        deleted: 1
+      };
+
+      // 投稿テーブルのアップデート
+      connection.query(
+        "update t_post set ? where id = ?",
+        [data_post, post_id],
+        (err, rows, fields) => {
+          if (err) throw err;
+          // 対象参照テーブル行を削除
+
+          const data_reference = {
+            updated_date: now,
+            deleted: 1
+          };
+          connection.query(
+            "update t_reference set ? where referred_from = ?",
+            [data_reference, post_id],
             (err, rows, fields) => {
               if (err) throw err;
             }
@@ -129,16 +361,7 @@ app.post("/", (req, res) => {
     }
   );
 
-  //  connection.query(
-  //    'select LAST_INSERT_ID()',
-  //    (err, rows, fields) => {
-  //      if (err) throw err;
-  //      console.log('rororo:', rows)
-  //    },
-  //  );
-
-  req.body.message = "ok";
-  res.send(req.body);
+  res.send({ message: "ok" });
 });
 
 app.listen(8888, () =>

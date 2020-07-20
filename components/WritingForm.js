@@ -1,12 +1,12 @@
-import Router from "next/router";
+import styles from "./styles/Posts.module.css"
 
 class WritingForm extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      val_name: "",
-      val_email: "",
-      val_body: ""
+      val_name: props.init.name,
+      val_email: props.init.email,
+      val_body: props.init.bodytext,
     };
   }
 
@@ -25,49 +25,33 @@ class WritingForm extends React.Component {
     this.setState({ val_body: e.target.value });
   }
 
-  async handleSubmit(e) {
-    e.preventDefault();
-    const data = {
-      post_name: "post-form",
-      val_name: this.state.val_name,
-      val_email: this.state.val_email,
-      val_body: this.state.val_body
-    };
-    const res = await fetch("http://localhost:3000/confirm", {
-      method: "POST",
-      mode: "cors",
-      cache: "no-cache",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8"
-      },
-      redirect: "follow",
-      body: JSON.stringify(data)
-    }).then((res) => {
-      if (res.ok) Router.push('/confirm')
-    })
-      .catch(error => console.log(error));
-  }
-
   render() {
     return (
-      <form method="post" onSubmit={e => this.handleSubmit(e)}>
+      <form
+        method="post"
+        onSubmit={e => this.props.onSubmit(e, this.state, this.props.update_data)}
+        className={styles.form}
+      >
         名前：
         <input
           type="text"
           value={this.state.val_name}
           onChange={e => this.handleNameChange(e)}
+          className={styles.name}
         />
         E-mail：
         <input
           type="text"
           value={this.state.val_email}
           onChange={e => this.handleEmailChange(e)}
+          className={styles.email}
         />
         <textarea
           value={this.state.val_body}
           onChange={e => this.handleBodyChange(e)}
+          className={styles.bodytext}
         />
-        <input type="submit" value="Submit" />
+        <input type="submit" value="Submit" className={styles.submit} />
       </form>
     );
   }
