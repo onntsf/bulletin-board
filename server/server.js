@@ -4,13 +4,15 @@ const formatter = require("../util/Formatter.js");
 
 const app = express();
 
+// コネクションの作成
 const connection = mysql.createConnection({
   host: "localhost",
-
-
-
+  user: "username",
+  password: "password",
+  database: "db_bulletin_board"
 });
 
+// 設定
 app.use(express.json());
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
@@ -21,15 +23,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// 投稿データ取得
 app.get("/posts", (req, res) => {
-  // 投稿データ取得
   connection.query(
     "select" +
       " t_post.id as id," +
       " t_post.updated_date as updated_date," +
       " body_text," +
       " m_user.id as user_id," +
-      " user_name" +
+      " user_name," +
+      " user_email" +
       " from t_post" +
       " left join m_user" +
       " on t_post.user_id = m_user.id" +
@@ -41,33 +44,18 @@ app.get("/posts", (req, res) => {
   );
 });
 
+// 参照データ取得
 app.get("/reference", (req, res) => {
-  // 参照データ取得
-  connection.query("select * from t_reference where deleted = 0", (err, rows, fields) => {
-    if (err) throw err;
-    res.send(rows);
-  });
+  connection.query(
+    "select * from t_reference where deleted = 0",
+    (err, rows, fields) => {
+      if (err) throw err;
+      res.send(rows);
+    }
+  );
 });
 
-const validate = req => {
-  const date_now = new Date();
-  const now = formatter.dateFormat(date_now);
-
-  let name = req.body.val_name;
-  let email = req.body.val_email;
-  const body_text = req.body.val_body;
-
-  // 入力チェック
-  const regex_email = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*\.\w+$/;
-  let message = "ok";
-  if (!body_text) {
-    message = "本文がありません！";
-  } else if (email && !regex_email.test(email)) {
-    message = "メールアドレスを正しく入力して下さい";
-  }
-  return [name, email, body_text, now, message];
-};
-
+// 投稿一時保存
 app.post("/temp", (req, res) => {
   const [name, email, body_text, now, message] = validate(req);
   // 問い合わせテーブルへの挿入データ準備
@@ -91,6 +79,7 @@ app.post("/temp", (req, res) => {
   );
 });
 
+// 投稿更新
 app.post("/temp/update", (req, res) => {
   const [name, email, body_text, now, message] = validate(req);
 
@@ -117,6 +106,7 @@ app.post("/temp/update", (req, res) => {
   );
 });
 
+// 一時保存中書き込み投稿内容取得
 app.get("/confirm", (req, res) => {
   if (typeof req.query.postid !== "undefined") {
     connection.query(
@@ -139,6 +129,7 @@ app.get("/confirm", (req, res) => {
   }
 });
 
+// 投稿IDに紐づく投稿取得
 app.get("/detail", (req, res) => {
   connection.query(
     "select" +
@@ -146,7 +137,8 @@ app.get("/detail", (req, res) => {
       " t_post.updated_date as updated_date," +
       " body_text," +
       " m_user.id as user_id," +
-      " user_name" +
+      " user_name," +
+      " user_email" +
       " from t_post" +
       " left join m_user" +
       " on t_post.user_id = m_user.id" +
@@ -159,10 +151,23 @@ app.get("/detail", (req, res) => {
   );
 });
 
+// 投稿IDに紐づく投稿の参照情報取得
+app.get("/detail/reference", (req, res) => {
+  connection.query(
+    "select * " + " from t_reference" + " where t_reference.refer_to = ?",
+    req.query.id,
+    (err, rows, fields) => {
+      if (err) throw err;
+      res.send(rows);
+    }
+  );
+});
+
+// 投稿登録
 app.post("/register", (req, res) => {
   // ユーザマスタへの挿入データ準備
   const name = req.body.name ? req.body.name : "匿名";
-  const email = req.body.name;
+  const email = req.body.email;
   const body_text = req.body.body_text;
   const now = formatter.dateSlice(req.body.created_date);
 
@@ -229,9 +234,10 @@ app.post("/register", (req, res) => {
   res.send({ message: "ok" });
 });
 
+// 投稿更新
 app.post("/update", (req, res) => {
   const name = req.body.name ? req.body.name : "匿名";
-  const email = req.body.name;
+  const email = req.body.email;
   const body_text = req.body.body_text;
   const now = formatter.dateSlice(req.body.created_date);
   const user_id = req.body.user_id;
@@ -312,6 +318,7 @@ app.post("/update", (req, res) => {
   res.send({ message: "ok" });
 });
 
+// 投稿削除
 app.post("/delete", (req, res) => {
   const date_now = new Date();
   const now = formatter.dateFormat(date_now);
@@ -367,3 +374,23 @@ app.post("/delete", (req, res) => {
 app.listen(8888, () =>
   console.log("Bulletin Board app listening on port 8888!!")
 );
+
+// 投稿内容妥当性チェック
+const validate = req => {
+  const date_now = new Date();
+  const now = formatter.dateFormat(date_now);
+
+  let name = req.body.val_name;
+  let email = req.body.val_email;
+  const body_text = req.body.val_body;
+
+  // 入力チェック
+  const regex_email = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*\.\w+$/;
+  let message = "ok";
+  if (!body_text) {
+    message = "本文がありません！";
+  } else if (email && !regex_email.test(email)) {
+    message = "メールアドレスを正しく入力して下さい";
+  }
+  return [name, email, body_text, now, message];
+};

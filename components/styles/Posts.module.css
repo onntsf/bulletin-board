@@ -1,21 +1,59 @@
+.post_wrap {
+  margin: 8px;
+}
+
 .post {
   border-width: 1px;
   display: inline-block;
   border-style: none solid solid none;
   border-color: #ddd;
   background-color: #efefef;
-  margin-bottom: 8px;
   padding: 8px;
+  float: none;
 }
 
-.refer_to {
-text-decoration: underline 
+.meta {
+  font-size: 14px;
+  color: #333;
 }
 
-.referred_from {
-font-size: 0.7em;
-margin-left: 5px;
-text-decoration: none
+.number {
+  margin-right: 5px;
 }
 
+.name {
+  color: green;
+  font-size: 15px;
+  margin-right: 5px;
+  font-weight: bold;
+}
 
+.email {
+  color: blue;
+  text-decoration: none;
+}
+
+.date {
+  margin-right: 5px;
+}
+
+.referred {
+  font-size: 0.7em;
+  margin-left: 5px;
+}
+
+.message {
+  font-size: 17px;
+  color: #333;
+  padding: 10px 0;
+  overflow-wrap: break-word;
+}
+
+.operation * {
+  margin-right: 5px;
+  font-size: 14px;
+}
+
+.anchor_data {
+  border: solid 1px black;
+}

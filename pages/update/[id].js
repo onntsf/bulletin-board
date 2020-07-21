@@ -1,24 +1,22 @@
-import WritingForm from "../../components/WritingForm";
 import Router from "next/router";
+import WritingForm from "../../components/WritingForm";
+import { getDetail } from "../confirm/[id].js";
 
+// 投稿内容更新ページ。
+// 更新対象の投稿詳細を取得し、書き込んだ内容を更新内容一時保存テーブルへ登録する
 class UpdatePage extends React.Component {
   render() {
-    const init_data = {
-      name: this.props.detail.name,
-      email: this.props.detail.email,
-      bodytext: this.props.detail.bodytext
-    };
-
     return (
       <WritingForm
         onSubmit={insertUpdate}
-        init={init_data}
         update_data={this.props.detail}
+        title="レスを更新する"
       />
     );
   }
 }
 
+// 更新内容を一時保存テーブルへ登録
 const insertUpdate = async (e, state, update_data) => {
   e.preventDefault();
   const data = {
@@ -40,32 +38,19 @@ const insertUpdate = async (e, state, update_data) => {
     body: JSON.stringify(data)
   })
     .then(res => res.json())
-    .then(result=> {
+    .then(result => {
       Router.push("/confirm/" + result.id + "?postid=" + data.post_id);
     })
     .catch(error => console.log(error));
 };
 
-const getDetail = async id => {
-  const res = await fetch("http://localhost:8888/detail/?id=" + id, {
-    method: "get",
-    mode: "cors",
-    cache: "no-cache",
-    headers: {
-      "Content-Type": "application/json; charset=utf-8"
-    },
-    redirect: "follow"
-  }).catch(error => console.log(error));
-  const detail = (await res.json())[0];
-  return detail;
-};
-
+// リクエスト時に投稿IDに紐づく投稿の詳細をページへ送る
 export async function getServerSideProps(context) {
   const id = context.params.id;
   const detail = await getDetail(id);
 
   return {
-    props: { detail } 
+    props: { detail }
   };
 }
 

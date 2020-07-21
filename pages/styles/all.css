@@ -1,0 +1,13 @@
+body {
+  background-color: #f2f3f7;
+}
+
+a:hover,
+a:focus {
+  color: #23527c;
+  text-decoration: underline;
+}
+
+#__next-prerender-indicator {
+  display: none;
+}

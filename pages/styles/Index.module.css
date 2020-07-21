@@ -1,0 +1,64 @@
+.header {
+  top: 0;
+  position: fixed;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  background: #f9f9f9;
+  border-bottom: 1px dotted #ededed;
+  border-top: 1px solid #ff9025;
+  width: 100%;
+}
+
+.header img {
+  display: inline-block;
+  vertical-align: middle;
+  height: 30px;
+}
+
+.container {
+  background-image: url("/hamu.png");
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position-x: calc(100% - 250px);
+  background-position-y: bottom;
+  margin-top: 5em;
+  width: inherit;
+  margin-right: 200px;
+  margin-left: 0;
+  padding-left: 15px;
+  padding-right: 15px;
+  box-sizing: border-box;
+}
+
+.title {
+  color: #485269;
+  font-size: 14px;
+  margin-top: 20px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pagestats {
+  border-bottom: 1px dotted #cdcdcd;
+}
+
+.menujust {
+  width: 100%;
+  margin-top: 1em;
+  padding-left: 0;
+  list-style: none;
+}
+
+.metastats {
+  text-align: center;
+  color: #af0a0f;
+  display: inline-block;
+  width: 48%;
+  min-width: 150px;
+  font-size: 14px;
+  padding-left: 15px;
+  padding-right: 15px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
